@@ -22,27 +22,36 @@ BioClimaticLimits <- read.csv("./data/FORESTGENERA_ALLDATA.csv")
 
 # change variable type
 
-BioClimaticLimits$Genus.name <- as.factor(BioClimaticLimits$Genus.name)
-BioClimaticLimits$GDD0 <- as.double(BioClimaticLimits$GDD0)
-BioClimaticLimits$GDD5 <- as.double(BioClimaticLimits$GDD5)
-BioClimaticLimits$GDD10 <- as.double(BioClimaticLimits$GDD10)
+BioClimaticLimits$SPECIES <- as.factor(BioClimaticLimits$SPECIES)
+BioClimaticLimits$COUNTRY <- as.factor(BioClimaticLimits$COUNTRY)
+BioClimaticLimits$CHELSA_gdd <- as.double(BioClimaticLimits$CHELSA_gdd)
 
 # omit NA
 
 BioClimaticLimits <- na.omit(BioClimaticLimits)
 
-# Variables / 10
+# Variables / 10 (just for the absolute values)
 
 BioClimaticLimits$TMAX <- BioClimaticLimits$TMAX/10
 BioClimaticLimits$TMIN <- BioClimaticLimits$TMIN/10
-BioClimaticLimits$GDD0 <- BioClimaticLimits$GDD0/10
-BioClimaticLimits$GDD5 <- BioClimaticLimits$GDD5/10
-BioClimaticLimits$GDD10 <- BioClimaticLimits$GDD10/10
 
 
 # Generate list of Genera for easier menu generation
 
-Genera <- levels(BioClimaticLimits$Genus.name)
+SPECIES <- levels(BioClimaticLimits$SPECIES)
+COUNTRY <- levels(BioClimaticLimits$COUNTRY)
+
+#-----------------------------------------------------------------------------#
+# Quantile calculation to kick out the top and bottom 5% of each variable
+# This is modular and can be expanded easily
+#-----------------------------------------------------------------------------#
+
+BioClimaticLimits <- BioClimaticLimits %>%
+filter(CHELSA_gdd <= quantile(CHELSA_gdd, 0.95) & CHELSA_gdd >= quantile(CHELSA_gdd, 0.05) &
+       TMAX <= quantile(TMAX, 0.95) & TMAX >= quantile(TMAX, 0.05) &
+       TMIN <= quantile(TMIN, 0.95) & TMIN >= quantile(TMIN, 0.05) &
+       Cth <= quantile(Cth, 0.95) & Cth >= quantile(Cth, 0.05))
+  
 
 #-----------------------------------------------------------------------------#
 # UI
@@ -51,13 +60,21 @@ Genera <- levels(BioClimaticLimits$Genus.name)
 ui <- bootstrapPage(
   
   # Application title
-  titlePanel("Bioclimatic limits for European Forest genera"),
+  titlePanel("Bioclimatic limits for European Forest Species"),
   
-  leafletOutput("genus_map"),
+  leafletOutput("species_map"),
   
   absolutePanel(top = 10, right = 10,
-                pickerInput("Genus", label = "Select a Genus:",
-                            choices = list(`Genus` = Genera),
+                pickerInput("Species", label = "Select a Species:",
+                            choices = list(`Species` = SPECIES),
+                            options = list(`live-search` = TRUE)
+                )
+  ),
+  
+  absolutePanel(top = 10, left = 10,
+                pickerInput("Country", label = "Select a Country:",
+                            choices = list("All countries",
+                                           `COUNTRY` = COUNTRY),
                             options = list(`live-search` = TRUE)
                 )
   ),
@@ -66,9 +83,10 @@ ui <- bootstrapPage(
     radioButtons("BCV", "Bioclimatic Variables",
                  choices = list(`TMIN` = "TMIN",
                                 `TMAX` = "TMAX",
-                                `GDD0` = "GDD0",
-                                `GDD5` = "GDD5",
-                                `GDD10` = "GDD10")
+                                `CHELSA_gdd` = "CHELSA_gdd",
+                                `GSL` = "GSL",
+                                `Cth` = "Cth",
+                                `SMD` = "SMD")
                                 
                 )
   ),
@@ -79,29 +97,51 @@ ui <- bootstrapPage(
 )
 
 
+
+
 #-----------------------------------------------------------------------------#
 # Server Logic
 #-----------------------------------------------------------------------------#
 
 server <- function(input, output, session) {
- 
-  filteredData <- reactive({
-      filter(BioClimaticLimits, Genus.name == input$Genus)
+  
+  # reactive Variable to render a new map each time a new genus is selected
+
+  Tree <- reactive({
+    if (input$Country == "All countries"){
+      BioClimaticLimits %>%
+        filter(SPECIES %in% input$Species)
+    } else {
+      BioClimaticLimits %>%
+        filter(COUNTRY %in% input$Country,
+               SPECIES %in% input$Species)
+    }
   }) 
+
   
- output$histogram <- renderPlot({
-   color = "#434343"
-   hist(filteredData()[[input$BCV]])
- })
-  
-  output$genus_map <- renderLeaflet({
-    leaflet(filteredData()) %>%
+  #-----------------------------------------------------------------------------#
+  # Colorpalettes
+  #-----------------------------------------------------------------------------#
+
+
+
+  output$species_map <- renderLeaflet({
+    leaflet(Tree()) %>%
       addProviderTiles(providers$Esri.WorldTopoMap) %>%
       addCircleMarkers(~Lon, ~Lat,
                        color = "Green",
                        opacity = 0.5,
                        radius = 0.1)
+  })
+  
+  output$histogram <- renderPlot({
+    color = "#434343"
+    hist(Tree()[[input$BCV]], 
+         main = paste0("Histogram of ", input$BCV, " ", input$Species),
+         xlab = paste0(input$BCV),
+         breaks = 100)
  })
+ 
 }
 
 # Run the application 
