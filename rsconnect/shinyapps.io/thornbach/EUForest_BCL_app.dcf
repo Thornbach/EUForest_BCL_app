@@ -5,9 +5,9 @@ account: thornbach
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6657843
-bundleId: 6108202
+bundleId: 6130888
 url: https://thornbach.shinyapps.io/EUForest_BCL_app/
-when: 1658153386.68734
-lastSyncTime: 1658153386.68735
+when: 1658762399.21001
+lastSyncTime: 1658762399.21002
 asMultiple: FALSE
 asStatic: FALSE

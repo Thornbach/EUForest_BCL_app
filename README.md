@@ -81,9 +81,9 @@ You can choose the different Genera at the top right with the absolutePanel menu
 - [x] Cut out 5% quantiles at the top and bottom
 - [x] Include Thornthwaite PET
 - [x] Fix GDD
-- [ ] Growing Seasonality - the map from chelsea is not realistic.
-- [ ] Soil moisture deficit during vegetation growing season
-- [ ] Arditiy Index
+- [x] Growing Seasonality - the map from chelsea is not realistic.
+- [x] Soil moisture deficit during vegetation growing season
+- [x] Arditiy Index
 - [ ] Data References
  
 ## References
